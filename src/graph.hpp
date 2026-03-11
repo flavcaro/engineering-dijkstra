@@ -3,13 +3,16 @@
 #include <vector>
 #include <stdexcept>
 
+//arco del grafo
 struct Edge {
-    int to;
-    double w;
+    int to; //nodo di destinazione
+    double w; //peso dell'arco, costo per attraversare l'arco da un nodo all'altro
 };
 
+//grafo rappresentato come lista di adiacenza
 using Graph = std::vector<std::vector<Edge>>;
 
+//grafo con n nodi ognuno con lista di adiacenza vuota
 inline Graph make_graph(int n) {
     if (n < 0) {
         throw std::invalid_argument("Number of nodes cannot be negative");

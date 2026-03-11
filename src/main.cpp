@@ -11,11 +11,12 @@ int main() {
     int n = 10000;
     int m = 50000;
 
-    std::cout << "Generating random graph...\n";
+    std::cout << "Generating random graph\n";
     Graph g = random_graph(n, m);
 
     int source = 0;
 
+    //misurazione del tempo di esecuzione di Dijkstra
     auto start = std::chrono::steady_clock::now();
 
     DijkstraResult result = dijkstra_binary_heap_lazy(g, source);
