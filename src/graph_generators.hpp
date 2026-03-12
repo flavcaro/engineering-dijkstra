@@ -19,7 +19,8 @@ inline Graph random_graph(int n, int m, int seed = 42) {
     }
 
     // massimo numero di archi distinti senza self-loop
-    if (m > n * (n - 1)) {
+    long long max_edges = 1LL * n * (n - 1);
+    if (m > max_edges) {
         throw std::invalid_argument("Too many edges requested");
     }
 

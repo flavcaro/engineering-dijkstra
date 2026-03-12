@@ -1,0 +1,14 @@
+# datasets
+data/
+
+# build artifacts
+*.exe
+*.out
+*.o
+build/
+
+# results
+results/
+
+# editor
+.vscode/
