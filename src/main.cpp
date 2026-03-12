@@ -1,32 +1,46 @@
 #include "graph.hpp"
-#include "dijkstra.hpp"
 #include "graph_generators.hpp"
 #include "graph_export.hpp"
 
-#include <chrono>
 #include <iostream>
 
 int main() {
-    int n = 10000;
-    int m = 50000;
-    int seed = 42;
 
-    std::cout << "Generating random graph\n";
-    Graph g = random_graph(n, m, seed);
+    std::cout << "Generating datasets...\n";
 
-    save_graph_to_file(g, "data/generated/random/random_n10000_m50000_seed42.txt");
+    // RANDOM GRAPHS
+    {
+        Graph g = random_graph(1000, 5000, 42);
+        save_graph_to_file(g, "data/generated/random/random_n1000_m5000.txt");
+    }
 
-    int source = 0;
+    {
+        Graph g = random_graph(10000, 50000, 42);
+        save_graph_to_file(g, "data/generated/random/random_n10000_m50000.txt");
+    }
 
-    auto start = std::chrono::steady_clock::now();
-    DijkstraResult result = dijkstra_binary_heap_lazy(g, source);
-    auto end = std::chrono::steady_clock::now();
+    {
+        Graph g = random_graph(50000, 250000, 42);
+        save_graph_to_file(g, "data/generated/random/random_n50000_m250000.txt");
+    }
 
-    double time_ms =
-        std::chrono::duration<double, std::milli>(end - start).count();
+    // GRID GRAPHS
+    {
+        Graph g = grid_graph(50, 50);
+        save_graph_to_file(g, "data/generated/grid/grid_50x50.txt");
+    }
 
-    std::cout << "Dijkstra runtime: " << time_ms << " ms\n";
-    std::cout << "Distance to node 10: " << result.dist[10] << "\n";
+    {
+        Graph g = grid_graph(100, 100);
+        save_graph_to_file(g, "data/generated/grid/grid_100x100.txt");
+    }
+
+    {
+        Graph g = grid_graph(300, 300);
+        save_graph_to_file(g, "data/generated/grid/grid_300x300.txt");
+    }
+
+    std::cout << "Datasets generated.\n";
 
     return 0;
 }

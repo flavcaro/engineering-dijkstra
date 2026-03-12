@@ -54,3 +54,34 @@ inline Graph random_graph(int n, int m, int seed = 42) {
 
     return g;
 }
+
+// Genera una griglia rows x cols.
+// Ogni nodo è collegato ai vicini destra e sotto (grafo non orientato)
+inline Graph grid_graph(int rows, int cols, double weight = 1.0) {
+
+    int n = rows * cols;
+    Graph g = make_graph(n);
+
+    auto node_id = [cols](int r, int c) {
+        return r * cols + c;
+    };
+
+    for (int r = 0; r < rows; ++r) {
+        for (int c = 0; c < cols; ++c) {
+
+            int u = node_id(r, c);
+
+            if (r + 1 < rows) {
+                int v = node_id(r + 1, c);
+                add_undirected_edge(g, u, v, weight);
+            }
+
+            if (c + 1 < cols) {
+                int v = node_id(r, c + 1);
+                add_undirected_edge(g, u, v, weight);
+            }
+        }
+    }
+
+    return g;
+}
