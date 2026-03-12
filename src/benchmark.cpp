@@ -20,7 +20,8 @@ int main() {
         {"random_n1000_m5000", "data/generated/random/random_n1000_m5000.txt", 0},
         {"random_n10000_m50000", "data/generated/random/random_n10000_m50000.txt", 0},
         {"grid_50x50", "data/generated/grid/grid_50x50.txt", 0},
-        {"grid_100x100", "data/generated/grid/grid_100x100.txt", 0}
+        {"grid_100x100", "data/generated/grid/grid_100x100.txt", 0},
+        {"com_youtube", "data/social/com-youtube.ungraph-weighted.txt", 0}
     };
 
     std::ofstream csv("results/benchmark_results.csv");
@@ -45,13 +46,13 @@ int main() {
         double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
 
         csv << test.dataset_name << ","
-            << g.size() << ","
             << "binary_heap_lazy" << ","
             << test.source << ","
             << time_ms << ","
             << dist10 << "\n";
 
         std::cout << "  time = " << time_ms << " ms\n";
+        std::cout << "  dist[10] = " << dist10 << "\n";
     }
 
     std::cout << "Benchmark completed.\n";
