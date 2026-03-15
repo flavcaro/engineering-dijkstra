@@ -9,6 +9,10 @@
 #include <vector>
 #include <cmath>
 
+// Singolo test di benchmark:
+// - nome del dataset
+// - percorso del file da caricare
+// - nodo sorgente da cui eseguire Dijkstra
 struct BenchmarkCase {
     std::string dataset_name;
     std::string path;
@@ -16,6 +20,11 @@ struct BenchmarkCase {
 };
 
 int main() {
+
+    // numero di esecuzioni per ogni benchmark
+    const int runs = 5;
+
+    // Elenco dei casi di test da eseguire
     std::vector<BenchmarkCase> cases = {
         {"random_n1000_m5000", "data/generated/random/random_n1000_m5000.txt", 0},
         {"random_n10000_m50000", "data/generated/random/random_n10000_m50000.txt", 0},
@@ -30,28 +39,46 @@ int main() {
         return 1;
     }
 
+    // intestazione file csv
     csv << "dataset,algorithm,source,time_ms,distance_to_10\n";
 
     for (const auto& test : cases) {
+
         std::cout << "Loading " << test.dataset_name << "...\n";
+
+        // carica il grafo dal file specificato nel caso di test
         Graph g = load_graph_from_file(test.path);
 
-        auto start = std::chrono::steady_clock::now();
-        DijkstraResult result = dijkstra_binary_heap_lazy(g, test.source);
-        auto end = std::chrono::steady_clock::now();
+        double total_time = 0.0;
+        DijkstraResult result;
 
-        double time_ms =
-            std::chrono::duration<double, std::milli>(end - start).count();
+        // esegue l'algoritmo più volte per ottenere una misura più stabile
+        for (int i = 0; i < runs; ++i) {
 
+            auto start = std::chrono::steady_clock::now();
+
+            result = dijkstra_binary_heap_lazy(g, test.source);
+
+            auto end = std::chrono::steady_clock::now();
+
+            total_time +=
+                std::chrono::duration<double, std::milli>(end - start).count();
+        }
+
+        // tempo medio di esecuzione
+        double time_ms = total_time / runs;
+
+        // valore di controllo per verificare la correttezza del risultato
         double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
 
+        // registra i risultati nel file csv
         csv << test.dataset_name << ","
             << "binary_heap_lazy" << ","
             << test.source << ","
             << time_ms << ","
             << dist10 << "\n";
 
-        std::cout << "  time = " << time_ms << " ms\n";
+        std::cout << "  avg time = " << time_ms << " ms\n";
         std::cout << "  dist[10] = " << dist10 << "\n";
     }
 

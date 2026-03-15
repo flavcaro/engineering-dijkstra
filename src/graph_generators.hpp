@@ -7,7 +7,11 @@
 #include <utility>
 #include <stdexcept>
 
-// Genera un grafo casuale con n nodi e m archi. I pesi degli archi sono reali casuali tra 1.0 e 10.0.
+// Genera un grafo casuale con n nodi e m archi. 
+// I pesi degli archi sono reali casuali tra 1.0 e 10.0.
+// il seed è il valore iniziale per il generatore di numeri casuali (default 42)
+// Usando lo stesso seed si ottiene sempre lo stesso grafo,
+// utile per rendere riproducibili i benchmark.
 inline Graph random_graph(int n, int m, int seed = 42) {
 
     if (n <= 0) {
@@ -31,7 +35,10 @@ inline Graph random_graph(int n, int m, int seed = 42) {
     std::uniform_int_distribution<int> node_dist(0, n - 1);
     std::uniform_real_distribution<double> weight_dist(1.0, 10.0);
 
-    //set per evitare dulicati (u,v)
+    // std::set viene usato per evitare archi duplicati.
+    // Garantisce unicità ma ha costo O(log m).
+    // Per grafi molto grandi si potrebbe usare std::unordered_set
+    // per ottenere inserimenti medi O(1).
     std::set<std::pair<int,int>> used_edges;
 
     while ((int)used_edges.size() < m) {
