@@ -1,6 +1,6 @@
-#include "graph.hpp"
-#include "graph_generators.hpp"
-#include "graph_export.hpp"
+#include "graph/graph.hpp"
+#include "graph/graph_generators.hpp"
+#include "graph/graph_export.hpp"
 
 #include <iostream>
 

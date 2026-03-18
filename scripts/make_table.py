@@ -2,13 +2,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-# crea cartella results se non esiste
+# cartella output
 Path("results").mkdir(parents=True, exist_ok=True)
 
-# leggi file benchmark
+# leggi risultati benchmark
 df = pd.read_csv("results/benchmark_results.csv")
 
-# dimensione dei dataset (numero archi)
+# numero di archi per il grafico di scaling
 dataset_sizes = {
     "random_n1000_m5000": 5000,
     "random_n10000_m50000": 50000,
@@ -19,8 +19,19 @@ dataset_sizes = {
 
 df["edges"] = df["dataset"].map(dataset_sizes)
 
+# nomi più leggibili per gli algoritmi
+algorithm_labels = {
+    "binary_heap_lazy": "Binary heap (lazy)",
+    "pairing_heap": "Pairing heap",
+    "fibonacci_heap": "Fibonacci heap"
+}
+
+df["algorithm_label"] = df["algorithm"].map(
+    lambda x: algorithm_labels.get(x, x)
+)
+
 # riepilogo statistico
-summary = df.groupby(["dataset", "algorithm"])["time_ms"].agg(["mean", "std", "count"])
+summary = df.groupby(["dataset", "algorithm_label"])["time_ms"].agg(["mean", "std", "count"])
 
 print("\nBenchmark summary:\n")
 print(summary)
@@ -33,7 +44,7 @@ with open("results/benchmark_summary.txt", "w", encoding="utf-8") as f:
 table = pd.pivot_table(
     df,
     index="dataset",
-    columns="algorithm",
+    columns="algorithm_label",
     values="time_ms",
     aggfunc="mean"
 )
@@ -64,34 +75,26 @@ with open("results/benchmark_table.md", "w", encoding="utf-8") as f:
     f.write(markdown_table)
 
 # grafico confronto dataset
-table.plot(kind="bar", figsize=(10,6))
-
+table.plot(kind="bar", figsize=(10, 6))
 plt.ylabel("Execution time (ms)")
 plt.xlabel("Dataset")
 plt.title("Dijkstra benchmark results")
-
 plt.xticks(rotation=45)
-
 plt.tight_layout()
-
 plt.savefig("results/benchmark_plot.png", dpi=200)
-
 plt.show()
 
-# grafico scaling (tempo vs numero archi)
-plt.figure(figsize=(8,6))
-
-plt.scatter(df["edges"], df["time_ms"])
+# grafico scaling
+plt.figure(figsize=(8, 6))
+for algorithm, group in df.groupby("algorithm_label"):
+    plt.scatter(group["edges"], group["time_ms"], label=algorithm)
 
 plt.xlabel("Number of edges")
 plt.ylabel("Execution time (ms)")
 plt.title("Dijkstra scaling behavior")
-
 plt.xscale("log")
 plt.yscale("log")
-
+plt.legend()
 plt.tight_layout()
-
 plt.savefig("results/scaling_plot.png", dpi=200)
-
 plt.show()
