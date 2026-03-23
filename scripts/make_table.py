@@ -22,8 +22,8 @@ df["edges"] = df["dataset"].map(dataset_sizes)
 # nomi più leggibili per gli algoritmi
 algorithm_labels = {
     "binary_heap_lazy": "Binary heap (lazy)",
-    "pairing_heap": "Pairing heap",
-    "fibonacci_heap": "Fibonacci heap"
+    "dary_heap": "4-ary heap",
+    "pairing_heap": "Pairing heap"
 }
 
 df["algorithm_label"] = df["algorithm"].map(
@@ -48,6 +48,14 @@ table = pd.pivot_table(
     values="time_ms",
     aggfunc="mean"
 )
+
+# ordine fisso delle colonne
+desired_order = [
+    "Binary heap (lazy)",
+    "4-ary heap",
+    "Pairing heap"
+]
+table = table.reindex(columns=[c for c in desired_order if c in table.columns])
 
 # nomi dataset più leggibili
 table = table.rename(index={
@@ -86,8 +94,16 @@ plt.show()
 
 # grafico scaling
 plt.figure(figsize=(8, 6))
+
 for algorithm, group in df.groupby("algorithm_label"):
-    plt.scatter(group["edges"], group["time_ms"], label=algorithm)
+    group = group.sort_values("edges")
+
+    plt.plot(
+        group["edges"],
+        group["time_ms"],
+        marker="o",
+        label=algorithm
+    )
 
 plt.xlabel("Number of edges")
 plt.ylabel("Execution time (ms)")
@@ -95,6 +111,7 @@ plt.title("Dijkstra scaling behavior")
 plt.xscale("log")
 plt.yscale("log")
 plt.legend()
+plt.grid(True)
 plt.tight_layout()
 plt.savefig("results/scaling_plot.png", dpi=200)
 plt.show()

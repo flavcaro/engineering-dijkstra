@@ -1,6 +1,7 @@
 #include "graph/graph_io.hpp"
 #include "dijkstra/dijkstra_binary.hpp"
 #include "dijkstra/dijkstra_pairing.hpp"
+#include "dijkstra/dijkstra_dary.hpp"
 
 #include <chrono>
 #include <fstream>
@@ -94,6 +95,35 @@ int main() {
 
             std::cout << "  [pairing_heap] time = " << time_ms << " ms\n";
             std::cout << "  [pairing_heap] dist[10] = " << dist10 << "\n";
+        }
+
+        // -------------------------------
+        // 4-ary heap
+        // -------------------------------
+        {
+            double total_time = 0.0;
+            DijkstraResult result;
+
+            for (int i = 0; i < runs; ++i) {
+                auto start = std::chrono::steady_clock::now();
+                result = dijkstra_dary_heap(g, test.source);
+                auto end = std::chrono::steady_clock::now();
+
+                total_time +=
+                    std::chrono::duration<double, std::milli>(end - start).count();
+            }
+
+            double time_ms = total_time / runs;
+            double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
+
+            csv << test.dataset_name << ","
+                << "dary_heap" << ","
+                << test.source << ","
+                << time_ms << ","
+                << dist10 << "\n";
+
+            std::cout << "  [dary_heap] time = " << time_ms << " ms\n";
+            std::cout << "  [dary_heap] dist[10] = " << dist10 << "\n";
         }
     }
 
