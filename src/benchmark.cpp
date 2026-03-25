@@ -4,6 +4,7 @@
 #include "dijkstra/dijkstra_dary.hpp"
 
 #include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -18,11 +19,28 @@ struct BenchmarkCase {
 int main() {
     const int runs = 5;
 
+    std::filesystem::create_directories("results");
+
     std::vector<BenchmarkCase> cases = {
-        {"random_n1000_m5000", "data/generated/random/random_n1000_m5000.txt", 0},
-        {"random_n10000_m50000", "data/generated/random/random_n10000_m50000.txt", 0},
+        // Random scaling
+        {"random_n1000_m5000", "data/generated/random_scaling/random_n1000_m5000.txt", 0},
+        {"random_n5000_m25000", "data/generated/random_scaling/random_n5000_m25000.txt", 0},
+        {"random_n10000_m50000", "data/generated/random_scaling/random_n10000_m50000.txt", 0},
+        {"random_n20000_m100000", "data/generated/random_scaling/random_n20000_m100000.txt", 0},
+        {"random_n50000_m250000", "data/generated/random_scaling/random_n50000_m250000.txt", 0},
+
+        // Random density
+        {"random_density_n10000_m20000", "data/generated/random_density/random_n10000_m20000.txt", 0},
+        {"random_density_n10000_m50000", "data/generated/random_density/random_n10000_m50000.txt", 0},
+        {"random_density_n10000_m100000", "data/generated/random_density/random_n10000_m100000.txt", 0},
+        {"random_density_n10000_m200000", "data/generated/random_density/random_n10000_m200000.txt", 0},
+
+        // Grid
         {"grid_50x50", "data/generated/grid/grid_50x50.txt", 0},
         {"grid_100x100", "data/generated/grid/grid_100x100.txt", 0},
+        {"grid_300x300", "data/generated/grid/grid_300x300.txt", 0},
+
+        // Reali
         {"com_youtube", "data/social/com-youtube.ungraph-weighted.txt", 0}
     };
 
@@ -32,98 +50,74 @@ int main() {
         return 1;
     }
 
-    csv << "dataset,algorithm,source,time_ms,distance_to_10\n";
+    csv << "dataset,algorithm,run,source,time_ms,distance_to_10\n";
 
     for (const auto& test : cases) {
         std::cout << "Loading " << test.dataset_name << "...\n";
 
         Graph g = load_graph_from_file(test.path);
 
-        // -------------------------------
         // Binary heap lazy
-        // -------------------------------
-        {
-            double total_time = 0.0;
-            DijkstraResult result;
+        for (int run = 1; run <= runs; ++run) {
+            auto start = std::chrono::steady_clock::now();
+            DijkstraResult result = dijkstra_binary_heap_lazy(g, test.source);
+            auto end = std::chrono::steady_clock::now();
 
-            for (int i = 0; i < runs; ++i) {
-                auto start = std::chrono::steady_clock::now();
-                result = dijkstra_binary_heap_lazy(g, test.source);
-                auto end = std::chrono::steady_clock::now();
-
-                total_time +=
-                    std::chrono::duration<double, std::milli>(end - start).count();
-            }
-
-            double time_ms = total_time / runs;
+            double time_ms =
+                std::chrono::duration<double, std::milli>(end - start).count();
             double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
 
             csv << test.dataset_name << ","
                 << "binary_heap_lazy" << ","
+                << run << ","
                 << test.source << ","
                 << time_ms << ","
                 << dist10 << "\n";
 
-            std::cout << "  [binary_heap_lazy] time = " << time_ms << " ms\n";
-            std::cout << "  [binary_heap_lazy] dist[10] = " << dist10 << "\n";
+            std::cout << "  [binary_heap_lazy][run " << run
+                      << "] time = " << time_ms << " ms\n";
         }
 
-        // -------------------------------
         // Pairing heap
-        // -------------------------------
-        {
-            double total_time = 0.0;
-            DijkstraResult result;
+        for (int run = 1; run <= runs; ++run) {
+            auto start = std::chrono::steady_clock::now();
+            DijkstraResult result = dijkstra_pairing_heap(g, test.source);
+            auto end = std::chrono::steady_clock::now();
 
-            for (int i = 0; i < runs; ++i) {
-                auto start = std::chrono::steady_clock::now();
-                result = dijkstra_pairing_heap(g, test.source);
-                auto end = std::chrono::steady_clock::now();
-
-                total_time +=
-                    std::chrono::duration<double, std::milli>(end - start).count();
-            }
-
-            double time_ms = total_time / runs;
+            double time_ms =
+                std::chrono::duration<double, std::milli>(end - start).count();
             double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
 
             csv << test.dataset_name << ","
                 << "pairing_heap" << ","
+                << run << ","
                 << test.source << ","
                 << time_ms << ","
                 << dist10 << "\n";
 
-            std::cout << "  [pairing_heap] time = " << time_ms << " ms\n";
-            std::cout << "  [pairing_heap] dist[10] = " << dist10 << "\n";
+            std::cout << "  [pairing_heap][run " << run
+                      << "] time = " << time_ms << " ms\n";
         }
 
-        // -------------------------------
         // 4-ary heap
-        // -------------------------------
-        {
-            double total_time = 0.0;
-            DijkstraResult result;
+        for (int run = 1; run <= runs; ++run) {
+            auto start = std::chrono::steady_clock::now();
+            DijkstraResult result = dijkstra_dary_heap(g, test.source);
+            auto end = std::chrono::steady_clock::now();
 
-            for (int i = 0; i < runs; ++i) {
-                auto start = std::chrono::steady_clock::now();
-                result = dijkstra_dary_heap(g, test.source);
-                auto end = std::chrono::steady_clock::now();
-
-                total_time +=
-                    std::chrono::duration<double, std::milli>(end - start).count();
-            }
-
-            double time_ms = total_time / runs;
+            double time_ms =
+                std::chrono::duration<double, std::milli>(end - start).count();
             double dist10 = (g.size() > 10) ? result.dist[10] : -1.0;
 
             csv << test.dataset_name << ","
                 << "dary_heap" << ","
+                << run << ","
                 << test.source << ","
                 << time_ms << ","
                 << dist10 << "\n";
 
-            std::cout << "  [dary_heap] time = " << time_ms << " ms\n";
-            std::cout << "  [dary_heap] dist[10] = " << dist10 << "\n";
+            std::cout << "  [dary_heap][run " << run
+                      << "] time = " << time_ms << " ms\n";
         }
     }
 

@@ -27,7 +27,7 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source) {
     // visited[v]= true se v è già stato estratto definitivamente dall'heap
     std::vector<double> dist(n, INF);
     std::vector<int> parent(n, -1);
-    std::vector<bool> visited(n, false);p
+    std::vector<bool> visited(n, false);
 
     // Heap d-ario con d = 4:
     // - chiave   = distanza

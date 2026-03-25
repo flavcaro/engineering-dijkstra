@@ -2,45 +2,91 @@
 #include "graph/graph_generators.hpp"
 #include "graph/graph_export.hpp"
 
+#include <filesystem>
 #include <iostream>
+#include <string>
+#include <vector>
 
 int main() {
+    std::filesystem::create_directories("data/generated/random_scaling");
+    std::filesystem::create_directories("data/generated/random_density");
+    std::filesystem::create_directories("data/generated/grid");
 
     std::cout << "Generating datasets...\n";
 
-    // RANDOM GRAPHS
+    // RANDOM GRAPHS - SCALING
     {
-        Graph g = random_graph(1000, 5000, 42);
-        save_graph_to_file(g, "data/generated/random/random_n1000_m5000.txt");
+        std::vector<std::pair<int, int>> scaling_cases = {
+            {1000, 5000},
+            {5000, 25000},
+            {10000, 50000},
+            {20000, 100000},
+            {50000, 250000}
+        };
+
+        for (const auto& [n, m] : scaling_cases) {
+            std::cout << "Generating random scaling graph: n=" << n
+                      << ", m=" << m << "...\n";
+
+            Graph g = random_graph(n, m, 42);
+
+            std::string filename =
+                "data/generated/random_scaling/random_n" +
+                std::to_string(n) + "_m" +
+                std::to_string(m) + ".txt";
+
+            save_graph_to_file(g, filename);
+        }
     }
 
+    // RANDOM GRAPHS - DENSITY STUDY
     {
-        Graph g = random_graph(10000, 50000, 42);
-        save_graph_to_file(g, "data/generated/random/random_n10000_m50000.txt");
-    }
+        int n = 10000;
+        int seed = 42;
 
-    {
-        Graph g = random_graph(50000, 250000, 42);
-        save_graph_to_file(g, "data/generated/random/random_n50000_m250000.txt");
+        std::vector<int> edges = {
+            20000,
+            50000,
+            100000,
+            200000
+        };
+
+        for (int m : edges) {
+            std::cout << "Generating random density graph: n=" << n
+                      << ", m=" << m << "...\n";
+
+            Graph g = random_graph(n, m, seed);
+
+            std::string filename =
+                "data/generated/random_density/random_n" +
+                std::to_string(n) + "_m" +
+                std::to_string(m) + ".txt";
+
+            save_graph_to_file(g, filename);
+        }
     }
 
     // GRID GRAPHS
     {
-        Graph g = grid_graph(50, 50);
-        save_graph_to_file(g, "data/generated/grid/grid_50x50.txt");
-    }
+        std::vector<std::pair<int, int>> grid_cases = {
+            {50, 50},
+            {100, 100},
+            {300, 300}
+        };
 
-    {
-        Graph g = grid_graph(100, 100);
-        save_graph_to_file(g, "data/generated/grid/grid_100x100.txt");
-    }
+        for (const auto& [r, c] : grid_cases) {
+            std::cout << "Generating grid graph: " << r << "x" << c << "...\n";
+            Graph g = grid_graph(r, c);
 
-    {
-        Graph g = grid_graph(300, 300);
-        save_graph_to_file(g, "data/generated/grid/grid_300x300.txt");
+            std::string filename =
+                "data/generated/grid/grid_" +
+                std::to_string(r) + "x" +
+                std::to_string(c) + ".txt";
+
+            save_graph_to_file(g, filename);
+        }
     }
 
     std::cout << "Datasets generated.\n";
-
     return 0;
 }
