@@ -17,7 +17,7 @@ struct BenchmarkCase {
 };
 
 int main() {
-    const int runs = 5;
+    const int runs = 3;
 
     std::filesystem::create_directories("results");
 
@@ -40,8 +40,9 @@ int main() {
         {"grid_100x100", "data/generated/grid/grid_100x100.txt", 0},
         {"grid_300x300", "data/generated/grid/grid_300x300.txt", 0},
 
-        // Reali
-        {"com_youtube", "data/social/com-youtube.ungraph-weighted.txt", 0}
+        // Real-world
+        {"com_youtube", "data/social/com-youtube.ungraph-weighted.txt", 0},
+        {"roadNet_CA", "data/road/roadNet-CA-weighted.txt", 0},
     };
 
     std::ofstream csv("results/benchmark_results.csv");
