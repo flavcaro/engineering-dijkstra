@@ -1,476 +1,269 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 from pathlib import Path
 
-# ============================================================
-# Setup
-# ============================================================
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+import pandas as pd
 
 RESULTS_DIR = Path("results")
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 csv_path = RESULTS_DIR / "benchmark_results.csv"
-
 if not csv_path.exists():
-    raise FileNotFoundError(
-        "results/benchmark_results.csv non esiste. Esegui prima ./benchmark.exe"
-    )
-
+    raise FileNotFoundError("results/benchmark_results.csv non esiste. Esegui prima ./benchmark.exe")
 if csv_path.stat().st_size == 0:
-    raise ValueError(
-        "results/benchmark_results.csv è vuoto. Il benchmark non ha scritto risultati."
-    )
+    raise ValueError("results/benchmark_results.csv e vuoto. Il benchmark non ha scritto risultati.")
 
 df = pd.read_csv(csv_path)
 
-required_columns = {"dataset", "algorithm", "time_ms"}
+required_columns = {
+    "family",
+    "dataset",
+    "graph_id",
+    "n",
+    "directed_edges",
+    "attachment",
+    "seed",
+    "algorithm",
+    "run",
+    "time_ms",
+    "pq_pushes",
+    "pq_pops",
+    "decrease_key_calls",
+    "edge_relax_attempts",
+    "successful_relaxations",
+    "stale_entries_discarded",
+    "settled_nodes",
+}
 missing = required_columns - set(df.columns)
 if missing:
     raise ValueError(f"Colonne mancanti nel CSV: {sorted(missing)}")
-
-# ============================================================
-# Labels e metadati
-# ============================================================
 
 algorithm_labels = {
     "binary_heap_lazy": "Binary heap (lazy)",
     "dary_heap": "4-ary heap",
     "pairing_heap": "Pairing heap",
 }
+algorithm_order = ["Binary heap (lazy)", "4-ary heap", "Pairing heap"]
 
-algorithm_order = [
-    "Binary heap (lazy)",
-    "4-ary heap",
-    "Pairing heap",
+counter_columns = [
+    "pq_pushes",
+    "pq_pops",
+    "decrease_key_calls",
+    "edge_relax_attempts",
+    "successful_relaxations",
+    "stale_entries_discarded",
+    "settled_nodes",
 ]
 
-dataset_info = {
-    # Random scaling
-    "random_n1000_m5000": {
-        "label": "Random (1k, 5k)",
-        "edges": 5000,
-        "category": "random_scaling",
-        "order": 1,
-    },
-    "random_n5000_m25000": {
-        "label": "Random (5k, 25k)",
-        "edges": 25000,
-        "category": "random_scaling",
-        "order": 2,
-    },
-    "random_n10000_m50000": {
-        "label": "Random (10k, 50k)",
-        "edges": 50000,
-        "category": "random_scaling",
-        "order": 3,
-    },
-    "random_n20000_m100000": {
-        "label": "Random (20k, 100k)",
-        "edges": 100000,
-        "category": "random_scaling",
-        "order": 4,
-    },
-    "random_n50000_m250000": {
-        "label": "Random (50k, 250k)",
-        "edges": 250000,
-        "category": "random_scaling",
-        "order": 5,
-    },
 
-    # Random density
-    "random_density_n10000_m20000": {
-        "label": "Density (10k, 20k)",
-        "edges": 20000,
-        "category": "random_density",
-        "order": 1,
-    },
-    "random_density_n10000_m50000": {
-        "label": "Density (10k, 50k)",
-        "edges": 50000,
-        "category": "random_density",
-        "order": 2,
-    },
-    "random_density_n10000_m100000": {
-        "label": "Density (10k, 100k)",
-        "edges": 100000,
-        "category": "random_density",
-        "order": 3,
-    },
-    "random_density_n10000_m200000": {
-        "label": "Density (10k, 200k)",
-        "edges": 200000,
-        "category": "random_density",
-        "order": 4,
-    },
-
-    # Grid
-    "grid_50x50": {
-        "label": "Grid 50x50",
-        "edges": 4900,
-        "category": "grid",
-        "order": 1,
-    },
-    "grid_100x100": {
-        "label": "Grid 100x100",
-        "edges": 19800,
-        "category": "grid",
-        "order": 2,
-    },
-    "grid_300x300": {
-        "label": "Grid 300x300",
-        "edges": 179400,
-        "category": "grid",
-        "order": 3,
-    },
-
-    # Real
-    "com_youtube": {
-        "label": "YouTube",
-        "edges": 3000000,
-        "category": "real",
-        "order": 1,
-    },
-    "roadNet_CA": {
-        "label": "roadNet-CA",
-        "edges": 2700000,
-        "category": "real",
-        "order": 2,
-    },
-}
-
-unknown_datasets = sorted(set(df["dataset"]) - set(dataset_info.keys()))
-if unknown_datasets:
-    raise ValueError(
-        "Questi dataset compaiono nel CSV ma non sono definiti in dataset_info:\n"
-        + "\n".join(unknown_datasets)
-    )
-
-df["algorithm_label"] = df["algorithm"].map(lambda x: algorithm_labels.get(x, x))
-df["dataset_label"] = df["dataset"].map(lambda x: dataset_info[x]["label"])
-df["edges"] = df["dataset"].map(lambda x: dataset_info[x]["edges"])
-df["category"] = df["dataset"].map(lambda x: dataset_info[x]["category"])
-df["dataset_order"] = df["dataset"].map(lambda x: dataset_info[x]["order"])
-
-# ============================================================
-# Summary statistico
-# ============================================================
-
-summary = (
-    df.groupby(
-        ["dataset", "dataset_label", "category", "dataset_order", "edges", "algorithm_label"],
-        as_index=False
-    )["time_ms"]
-    .agg(["mean", "std", "count"])
-    .reset_index()
-)
-
-summary = summary.sort_values(["category", "dataset_order", "algorithm_label"])
-
-print("\nBenchmark summary:\n")
-print(summary)
-
-with open(RESULTS_DIR / "benchmark_summary.txt", "w", encoding="utf-8") as f:
-    f.write(summary.to_string(index=False))
-
-# ============================================================
-# Funzioni utili
-# ============================================================
-
-def build_table(value_col: str, category: str | None = None) -> pd.DataFrame:
-    data = summary.copy()
-    if category is not None:
-        data = data[data["category"] == category]
-
-    data = data.sort_values(["dataset_order", "algorithm_label"])
-
-    table = data.pivot(
-        index="dataset_label",
-        columns="algorithm_label",
-        values=value_col
-    )
-
-    existing_columns = [c for c in algorithm_order if c in table.columns]
-    table = table.reindex(columns=existing_columns)
-    return table
+def dataset_label(row: pd.Series) -> str:
+    if row["family"] == "ba_scaling":
+        return f"BA scaling (n={int(row['n'] / 1000)}k)"
+    if row["family"] == "ba_density":
+        return f"BA density (a={int(row['attachment'])})"
+    return str(row["dataset"])
 
 
-def save_table_files(table: pd.DataFrame, base_name: str, round_digits: int = 4) -> None:
+def save_table(table: pd.DataFrame, base_name: str, digits: int = 4) -> None:
+    table.to_csv(RESULTS_DIR / f"{base_name}.csv")
     with open(RESULTS_DIR / f"{base_name}.txt", "w", encoding="utf-8") as f:
         f.write(table.to_string())
-
     with open(RESULTS_DIR / f"{base_name}.md", "w", encoding="utf-8") as f:
-        f.write(table.round(round_digits).to_markdown())
+        f.write(table.round(digits).to_markdown())
 
 
-def plot_bar_table(
-    table: pd.DataFrame,
-    title: str,
-    filename: str,
-    ylabel: str = "Execution time (ms)",
-    rotation: int = 35
-) -> None:
+df["algorithm_label"] = df["algorithm"].map(lambda x: algorithm_labels.get(x, x))
+
+metadata = (
+    df.groupby("dataset", as_index=False)
+    .agg(
+        family=("family", "first"),
+        n=("n", "first"),
+        attachment=("attachment", "first"),
+        directed_edges=("directed_edges", "mean"),
+        graphs=("graph_id", "nunique"),
+        runs=("run", "nunique"),
+    )
+)
+metadata["dataset_label"] = metadata.apply(dataset_label, axis=1)
+metadata["dataset_order"] = metadata.apply(
+    lambda row: int(row["n"]) if row["family"] == "ba_scaling" else int(row["attachment"]),
+    axis=1,
+)
+
+df = df.merge(
+    metadata[["dataset", "dataset_label", "dataset_order"]],
+    on="dataset",
+    how="left",
+)
+
+metric_columns = ["time_ms", *counter_columns]
+summary = (
+    df.groupby(
+        [
+            "dataset",
+            "dataset_label",
+            "family",
+            "dataset_order",
+            "n",
+            "attachment",
+            "algorithm_label",
+        ],
+        as_index=False,
+    )[metric_columns]
+    .agg(["mean", "std", "count"])
+)
+summary.columns = ["_".join(col).strip("_") for col in summary.columns]
+summary = summary.sort_values(["family", "dataset_order", "algorithm_label"])
+
+save_table(metadata.sort_values(["family", "dataset_order"]), "benchmark_metadata", digits=2)
+with open(RESULTS_DIR / "benchmark_summary.txt", "w", encoding="utf-8") as f:
+    f.write(summary.to_string(index=False))
+summary.to_csv(RESULTS_DIR / "benchmark_summary.csv", index=False)
+
+
+def build_pivot(value_col: str, family: str | None = None) -> pd.DataFrame:
+    data = summary.copy()
+    if family is not None:
+        data = data[data["family"] == family]
+    table = data.pivot(index="dataset_label", columns="algorithm_label", values=value_col)
+    ordered_index = (
+        data[["dataset_label", "dataset_order"]]
+        .drop_duplicates()
+        .sort_values("dataset_order")["dataset_label"]
+    )
+    return table.reindex(index=ordered_index, columns=[c for c in algorithm_order if c in table.columns])
+
+
+def plot_line(family: str, filename: str, title: str, x_col: str, x_label: str) -> None:
+    data = summary[summary["family"] == family].copy().sort_values(x_col)
+    plt.figure(figsize=(8, 5))
+    for algorithm in algorithm_order:
+        group = data[data["algorithm_label"] == algorithm].sort_values(x_col)
+        if not group.empty:
+            plt.plot(group[x_col], group["time_ms_mean"], marker="o", label=algorithm)
+    plt.xlabel(x_label)
+    plt.ylabel("Execution time (ms)")
+    plt.title(title)
+    plt.grid(True, alpha=0.35)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(RESULTS_DIR / filename, dpi=200)
+    plt.close()
+
+
+def plot_speedup(table: pd.DataFrame, filename: str, title: str) -> None:
     ax = table.plot(kind="bar", figsize=(10, 5))
     ax.set_title(title)
     ax.set_xlabel("Dataset")
-    ax.set_ylabel(ylabel)
-    plt.xticks(rotation=rotation, ha="right")
+    ax.set_ylabel("Speedup vs binary")
+    ax.axhline(1.0, linestyle="--", color="black", linewidth=1)
+    plt.xticks(rotation=35, ha="right")
     plt.tight_layout()
     plt.savefig(RESULTS_DIR / filename, dpi=200)
-    plt.show()
+    plt.close()
 
 
-def plot_line_by_category(
-    category: str,
-    title: str,
-    filename: str,
-    x_label: str = "Number of edges",
-    y_label: str = "Execution time (ms)",
-    logx: bool = True,
-    logy: bool = True
-) -> None:
-    data = summary[summary["category"] == category].copy()
-    data = data.sort_values(["edges", "algorithm_label"])
+mean_table = build_pivot("time_ms_mean")
+std_table = build_pivot("time_ms_std")
+save_table(mean_table, "benchmark_table_mean")
+save_table(std_table, "benchmark_table_std")
 
-    plt.figure(figsize=(8, 6))
+for family in ["ba_scaling", "ba_density"]:
+    save_table(build_pivot("time_ms_mean", family), f"{family}_table_mean")
+    save_table(build_pivot("time_ms_std", family), f"{family}_table_std")
 
-    for algorithm in algorithm_order:
-        group = data[data["algorithm_label"] == algorithm].sort_values("edges")
-        if group.empty:
-            continue
-
-        plt.plot(
-            group["edges"],
-            group["mean"],
-            marker="o",
-            label=algorithm
-        )
-
-    plt.xlabel(x_label)
-    plt.ylabel(y_label)
-    plt.title(title)
-
-    if logx:
-        plt.xscale("log")
-    if logy:
-        plt.yscale("log")
-
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(RESULTS_DIR / filename, dpi=200)
-    plt.show()
-
-
-# ============================================================
-# Tabelle globali
-# ============================================================
-
-mean_table = build_table("mean")
-std_table = build_table("std")
-
-print("\nMean execution times:\n")
-print(mean_table)
-
-print("\nStandard deviation of execution times:\n")
-print(std_table)
-
-save_table_files(mean_table, "benchmark_table_mean")
-save_table_files(std_table, "benchmark_table_std")
-
-# ============================================================
-# Tabelle separate per categoria
-# ============================================================
-
-for category in ["random_scaling", "random_density", "grid", "real"]:
-    mean_cat = build_table("mean", category=category)
-    std_cat = build_table("std", category=category)
-
-    save_table_files(mean_cat, f"{category}_table_mean")
-    save_table_files(std_cat, f"{category}_table_std")
-
-# ============================================================
-# Grafico generale
-# ============================================================
-
-plot_bar_table(
-    mean_table,
-    title="Dijkstra benchmark results",
-    filename="benchmark_plot_all.png"
-)
-
-# ============================================================
-# Grafici separati per categoria
-# ============================================================
-
-random_scaling_table = build_table("mean", category="random_scaling")
-random_density_table = build_table("mean", category="random_density")
-grid_table = build_table("mean", category="grid")
-real_table = build_table("mean", category="real")
-
-plot_bar_table(
-    random_scaling_table,
-    title="Random graphs: scaling study",
-    filename="benchmark_plot_random_scaling.png"
-)
-
-plot_bar_table(
-    random_density_table,
-    title="Random graphs: density study",
-    filename="benchmark_plot_random_density.png"
-)
-
-plot_bar_table(
-    grid_table,
-    title="Grid graphs",
-    filename="benchmark_plot_grid.png"
-)
-
-plot_bar_table(
-    real_table,
-    title="Real datasets",
-    filename="benchmark_plot_real.png"
-)
-
-# ============================================================
-# Grafici lineari: scaling e density
-# ============================================================
-
-plot_line_by_category(
-    category="random_scaling",
-    title="Scaling on random graphs",
-    filename="scaling_plot.png"
-)
-
-plot_line_by_category(
-    category="random_density",
-    title="Effect of graph density",
-    filename="density_plot.png"
-)
-
-# ============================================================
-# Speedup rispetto al binary heap
-# ============================================================
+for counter in counter_columns:
+    save_table(build_pivot(f"{counter}_mean"), f"counter_{counter}_mean", digits=2)
 
 speedup_rows = []
-
 for dataset_name in summary["dataset"].unique():
-    dataset_subset = summary[summary["dataset"] == dataset_name].copy()
-
-    binary_row = dataset_subset[
-        dataset_subset["algorithm_label"] == "Binary heap (lazy)"
-    ]
-
-    if binary_row.empty:
+    subset = summary[summary["dataset"] == dataset_name]
+    binary = subset[subset["algorithm_label"] == "Binary heap (lazy)"]
+    if binary.empty:
         continue
+    binary_time = binary["time_ms_mean"].iloc[0]
+    for _, row in subset.iterrows():
+        speedup_rows.append(
+            {
+                "dataset": dataset_name,
+                "dataset_label": row["dataset_label"],
+                "family": row["family"],
+                "dataset_order": row["dataset_order"],
+                "algorithm_label": row["algorithm_label"],
+                "speedup_vs_binary": binary_time / row["time_ms_mean"],
+            }
+        )
 
-    binary_time = binary_row["mean"].iloc[0]
-
-    for _, row in dataset_subset.iterrows():
-        speedup_rows.append({
-            "dataset": dataset_name,
-            "dataset_label": row["dataset_label"],
-            "category": row["category"],
-            "dataset_order": row["dataset_order"],
-            "algorithm_label": row["algorithm_label"],
-            "speedup_vs_binary": binary_time / row["mean"],
-        })
-
-speedup_df = pd.DataFrame(speedup_rows)
-speedup_df = speedup_df.sort_values(["category", "dataset_order", "algorithm_label"])
+speedup_df = pd.DataFrame(speedup_rows).sort_values(["family", "dataset_order", "algorithm_label"])
+speedup_df.to_csv(RESULTS_DIR / "benchmark_speedup.csv", index=False)
 
 speedup_table = speedup_df.pivot(
     index="dataset_label",
     columns="algorithm_label",
-    values="speedup_vs_binary"
+    values="speedup_vs_binary",
 )
+ordered_labels = (
+    speedup_df[["dataset_label", "family", "dataset_order"]]
+    .drop_duplicates()
+    .sort_values(["family", "dataset_order"])["dataset_label"]
+)
+speedup_table = speedup_table.reindex(index=ordered_labels, columns=[c for c in algorithm_order if c in speedup_table.columns])
+save_table(speedup_table, "benchmark_speedup")
+plot_speedup(speedup_table, "speedup_plot.png", "Speedup relative to Binary heap (lazy)")
 
-existing_columns = [c for c in algorithm_order if c in speedup_table.columns]
-speedup_table = speedup_table.reindex(columns=existing_columns)
-
-print("\nSpeedup vs Binary Heap:\n")
-print(speedup_table.round(4))
-
-save_table_files(speedup_table, "benchmark_speedup")
-
-# Speedup separato per categoria
-for category in ["random_scaling", "random_density", "grid", "real"]:
-    cat_df = speedup_df[speedup_df["category"] == category]
-    cat_table = cat_df.pivot(
+for family in ["ba_scaling", "ba_density"]:
+    family_speedup = speedup_df[speedup_df["family"] == family]
+    table = family_speedup.pivot(
         index="dataset_label",
         columns="algorithm_label",
-        values="speedup_vs_binary"
+        values="speedup_vs_binary",
     )
-    cat_table = cat_table.reindex(columns=[c for c in algorithm_order if c in cat_table.columns])
-    save_table_files(cat_table, f"{category}_speedup")
+    ordered = (
+        family_speedup[["dataset_label", "dataset_order"]]
+        .drop_duplicates()
+        .sort_values("dataset_order")["dataset_label"]
+    )
+    table = table.reindex(index=ordered, columns=[c for c in algorithm_order if c in table.columns])
+    save_table(table, f"{family}_speedup")
+    plot_speedup(table, f"{family}_speedup_plot.png", f"Speedup on {family.replace('_', ' ')}")
 
-# Grafico speedup generale
-ax = speedup_table.plot(kind="bar", figsize=(12, 6))
-ax.set_title("Speedup relative to Binary heap (lazy)")
-ax.set_xlabel("Dataset")
-ax.set_ylabel("Speedup")
-plt.xticks(rotation=35, ha="right")
-plt.axhline(1.0, linestyle="--")
-plt.tight_layout()
-plt.savefig(RESULTS_DIR / "speedup_plot.png", dpi=200)
-plt.show()
+plot_line(
+    family="ba_scaling",
+    filename="ba_scaling_plot.png",
+    title="Scaling on Barabasi-Albert graphs",
+    x_col="n",
+    x_label="Number of nodes",
+)
+plot_line(
+    family="ba_density",
+    filename="ba_density_plot.png",
+    title="Effect of Barabasi-Albert attachment",
+    x_col="attachment",
+    x_label="Attachment parameter",
+)
 
-# ============================================================
-# Boxplot dei tempi per run
-# Serve a far vedere meglio la variabilità tra esecuzioni
-# ============================================================
-
-for category in ["random_scaling", "random_density", "grid", "real"]:
-    cat_df = df[df["category"] == category].copy()
-    if cat_df.empty:
-        continue
-
-    labels_in_order = [
-        dataset_info[name]["label"]
-        for name in dataset_info
-        if dataset_info[name]["category"] == category
-        and name in set(cat_df["dataset"])
-    ]
-
-    # Faccio un boxplot per ogni algoritmo separatamente
+for family in ["ba_scaling", "ba_density"]:
     for algorithm in algorithm_order:
-        algo_df = cat_df[cat_df["algorithm_label"] == algorithm].copy()
-        if algo_df.empty:
+        subset = df[(df["family"] == family) & (df["algorithm_label"] == algorithm)].copy()
+        if subset.empty:
             continue
-
-        data_for_box = []
-        valid_labels = []
-
-        for dataset_name in dataset_info:
-            info = dataset_info[dataset_name]
-            if info["category"] != category:
-                continue
-
-            subset = algo_df[algo_df["dataset"] == dataset_name]["time_ms"]
-            if not subset.empty:
-                data_for_box.append(subset.values)
-                valid_labels.append(info["label"])
-
-        if not data_for_box:
-            continue
-
+        labels = (
+            subset[["dataset_label", "dataset_order"]]
+            .drop_duplicates()
+            .sort_values("dataset_order")["dataset_label"]
+            .tolist()
+        )
+        values = [subset[subset["dataset_label"] == label]["time_ms"].values for label in labels]
         plt.figure(figsize=(10, 5))
-        plt.boxplot(data_for_box, tick_labels=valid_labels)
-        plt.title(f"Run variability - {algorithm} - {category.replace('_', ' ').title()}")
+        plt.boxplot(values, tick_labels=labels)
+        plt.title(f"Run variability - {algorithm} - {family.replace('_', ' ').title()}")
         plt.ylabel("Execution time (ms)")
         plt.xticks(rotation=35, ha="right")
         plt.tight_layout()
+        safe_algorithm_name = algorithm.lower().replace(" ", "_").replace("(", "").replace(")", "").replace("-", "")
+        plt.savefig(RESULTS_DIR / f"boxplot_{family}_{safe_algorithm_name}.png", dpi=200)
+        plt.close()
 
-        safe_algorithm_name = (
-            algorithm.lower()
-            .replace(" ", "_")
-            .replace("(", "")
-            .replace(")", "")
-            .replace("-", "")
-        )
-        plt.savefig(
-            RESULTS_DIR / f"boxplot_{category}_{safe_algorithm_name}.png",
-            dpi=200
-        )
-        plt.show()
-
-print("\nAnalisi completata. File salvati nella cartella results/.")
+print("Analisi completata. File salvati nella cartella results/.")

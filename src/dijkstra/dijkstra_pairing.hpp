@@ -12,7 +12,7 @@
 // A differenza della versione con binary heap "lazy",
 // qui viene utilizzata l'operazione decrease-key per aggiornare
 // le distanze in modo efficiente.
-inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source) {
+inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source, DijkstraStats* stats = nullptr) {
     int n = static_cast<int>(g.size());
 
     //controlla che il nodo sorgente sia valido
@@ -31,6 +31,10 @@ inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source) {
     // Vettore per tenere traccia dei nodi già visitati
     std::vector<bool> visited(n, false);
 
+    if (stats) {
+        *stats = {};
+    }
+
     using Heap = PairingHeap<double, int>;
     Heap pq;
 
@@ -40,37 +44,61 @@ inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source) {
 
     dist[source] = 0.0;
     handles[source] = pq.push(0.0, source);
+    if (stats) {
+        ++stats->pq_pushes;
+    }
 
-    // Loop principale di Dijkstra
+    // Loop principale
     while (!pq.empty()) {
         // Estrae il nodo con distanza minima
         auto [du, u] = pq.top();
         pq.pop();
+        if (stats) {
+            ++stats->pq_pops;
+        }
         handles[u] = nullptr;
 
         // Se il nodo è già stato visitato, salta
         if (visited[u]) {
+            if (stats) {
+                ++stats->stale_entries_discarded;
+            }
             continue;
         }
         visited[u] = true;
+        if (stats) {
+            ++stats->settled_nodes;
+        }
 
         //Rilassamento degli archi uscenti da u
         for (const auto& e : g[u]) {
             int v = e.to;
+            if (stats) {
+                ++stats->edge_relax_attempts;
+            }
             double nd = du + e.w;
 
             // Se viene trovato un percorso più breve per v
             //aggiorna la distanza e il genitore
             if (nd < dist[v]) {
+                if (stats) {
+                    ++stats->successful_relaxations;
+                }
                 dist[v] = nd;
                 parent[v] = u;
 
                 //caso 1: v non è ancora nel pairing heap, quindi lo inserisce
                 if (handles[v] == nullptr) {
                     handles[v] = pq.push(nd, v);
+                    if (stats) {
+                        ++stats->pq_pushes;
+                    }
                 //caso2: v è già nel pairing heap, quindi aggiorna la chiave con decrease_key
                 } else {
                     pq.decrease_key(handles[v], nd);
+                    if (stats) {
+                        ++stats->decrease_key_calls;
+                    }
                 }
             }
         }

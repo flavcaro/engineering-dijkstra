@@ -13,7 +13,7 @@ class DAryHeap {
 
 public:
 // Rappresenta un nodo nell'heap
-// Contiene la chiave, il valore e l'indice corrente nel vettore heap
+// Contiene la chiave (distanza del nodo), il valore (ID del nodo) e posizione fisica del nodo nel vettore heap
     struct Node {
         Key key;
         Value value;
@@ -33,7 +33,7 @@ public:
         }
     }
 
-    // Non permette copie o assegnazioni per evitare problemi di gestione della memoria
+    // Non permette copie per evitare problemi di gestione della memoria
     DAryHeap(const DAryHeap&) = delete;
     DAryHeap& operator=(const DAryHeap&) = delete;
 

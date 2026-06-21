@@ -11,7 +11,7 @@
 // Esegue l'algoritmo di Dijkstra usando una coda di priorità basata su 4-ary heap.
 // L'heap supporta decrease-key, quindi quando trova un cammino migliore
 // aggiorna direttamente la priorità del nodo già presente nella coda.
-inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source) {
+inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source, DijkstraStats* stats = nullptr) {
     int n = static_cast<int>(g.size());
 
     // Controllo validità del nodo sorgente
@@ -29,6 +29,10 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source) {
     std::vector<int> parent(n, -1);
     std::vector<bool> visited(n, false);
 
+    if (stats) {
+        *stats = {};
+    }
+
     // Heap d-ario con d = 4:
     // - chiave   = distanza
     // - valore   = id del nodo
@@ -42,30 +46,48 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source) {
     //inizializza la coda con il nodo sorgente
     dist[source] = 0.0;
     handles[source] = pq.push(0.0, source);
+    if (stats) {
+        ++stats->pq_pushes;
+    }
 
     //finché la coda non è vuota
     while (!pq.empty()) {
         // Estrai il nodo con distanza minima corrente
         auto [du, u] = pq.top();
         pq.pop();
+        if (stats) {
+            ++stats->pq_pops;
+        }
         // Segna il nodo come visitato e rimuovi il suo handle dall'heap
         handles[u] = nullptr;
 
         // Se il nodo è già stato visitato, salta 
         //(può succedere se abbiamo più entry per lo stesso nodo)
         if (visited[u]) {
+            if (stats) {
+                ++stats->stale_entries_discarded;
+            }
             continue;
         }
         visited[u] = true;
+        if (stats) {
+            ++stats->settled_nodes;
+        }
 
         // Per ogni arco (u, v) rilassa l'arco
         for (const auto& e : g[u]) {
             int v = e.to;
+            if (stats) {
+                ++stats->edge_relax_attempts;
+            }
             // Calcola la distanza del cammino da source a v passando per u
             double nd = du + e.w;
 
             // Se il cammino trovato è migliore di quello noto finora, aggiorna distanza e padre
             if (nd < dist[v]) {
+                if (stats) {
+                    ++stats->successful_relaxations;
+                }
                 dist[v] = nd;
                 parent[v] = u;
 
@@ -73,8 +95,14 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source) {
                 // Altrimenti aggiorna la sua chiave.
                 if (handles[v] == nullptr) {
                     handles[v] = pq.push(nd, v);
+                    if (stats) {
+                        ++stats->pq_pushes;
+                    }
                 } else {
                     pq.decrease_key(handles[v], nd);
+                    if (stats) {
+                        ++stats->decrease_key_calls;
+                    }
                 }
             }
         }
