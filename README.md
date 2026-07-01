@@ -1,6 +1,6 @@
 # engineering-dijkstra
 
-Studio sperimentale su Dijkstra: **quanto incide la struttura della priority queue** sulle prestazioni, confrontando implementazioni diverse su grafi sintetici e reali.
+Studio sperimentale su Dijkstra: **quanto incide la struttura della priority queue** sulle prestazioni, confrontando implementazioni diverse su grafi sintetici Barabasi-Albert.
 
 ## 1) Obiettivo del progetto
 
@@ -22,7 +22,7 @@ Implementazioni confrontate:
 - `src/generate_datasets.cpp`: generazione dataset sintetici.
 - `tests/`: test di correttezza (confronto distanze tra implementazioni).
 - `scripts/`: conversione dataset SNAP e analisi risultati.
-- `data/`: dataset generati e reali.
+- `data/`: dataset generati.
 - `results/`: CSV, tabelle, speedup e grafici.
 
 ## 3) Formato dei grafi
@@ -97,29 +97,6 @@ I file vengono salvati in:
 - `data/generated/random_scaling/`
 - `data/generated/random_density/`
 - `data/generated/grid/`
-
-### 5.2 Reali (SNAP)
-
-I dataset reali non sono inclusi nel repo perché grandi.
-
-Download:
-
-- Road network: https://snap.stanford.edu/data/roadNet-CA.html
-- Social graph: https://snap.stanford.edu/data/com-Youtube.html
-
-Posizionare i file in:
-
-- `data/road/`
-- `data/social/`
-
-Poi convertire nel formato pesato del progetto con `scripts/convert_snap.py`.
-
-Esempi:
-
-```bash
-python scripts/convert_snap.py --input data/road/roadNet-CA.txt --output data/road/roadNet-CA-weighted.txt --directed --weight-mode unit
-python scripts/convert_snap.py --input data/social/com-youtube.ungraph.txt --output data/social/com-youtube.ungraph-weighted.txt --weight-mode unit
-```
 
 ## 6) Come eseguire il progetto
 
@@ -228,7 +205,7 @@ Osservazioni principali:
 	 - Esempio density `10k, 100k`: 3.54 ms vs 4.21 ms (speedup ~1.19x).
 	 - Esempio density `10k, 200k`: 4.03 ms vs 4.95 ms (speedup ~1.23x).
 3. **Pairing heap** in questo setup è quasi sempre più lento.
-4. Nei dataset reali (YouTube, roadNet-CA) il binary heap risulta comunque migliore.
+4. Il binary heap lazy resta la baseline di riferimento anche nei casi più densi.
 
 Interpretazione pratica:
 

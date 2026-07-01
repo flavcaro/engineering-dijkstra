@@ -27,7 +27,6 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source, DijkstraSta
     // visited[v]= true se v è già stato estratto definitivamente dall'heap
     std::vector<double> dist(n, INF);
     std::vector<int> parent(n, -1);
-    std::vector<bool> visited(n, false);
 
     if (stats) {
         *stats = {};
@@ -61,27 +60,18 @@ inline DijkstraResult dijkstra_dary_heap(const Graph& g, int source, DijkstraSta
         // Segna il nodo come visitato e rimuovi il suo handle dall'heap
         handles[u] = nullptr;
 
-        // Se il nodo è già stato visitato, salta 
-        //(può succedere se abbiamo più entry per lo stesso nodo)
-        if (visited[u]) {
-            if (stats) {
-                ++stats->stale_entries_discarded;
-            }
-            continue;
-        }
-        visited[u] = true;
         if (stats) {
             ++stats->settled_nodes;
         }
 
         // Per ogni arco (u, v) rilassa l'arco
         for (const auto& e : g[u]) {
-            int v = e.to;
+            int v = e.target;
             if (stats) {
                 ++stats->edge_relax_attempts;
             }
             // Calcola la distanza del cammino da source a v passando per u
-            double nd = du + e.w;
+            double nd = du + e.weight;
 
             // Se il cammino trovato è migliore di quello noto finora, aggiorna distanza e padre
             if (nd < dist[v]) {

@@ -1,36 +1,23 @@
 #pragma once
 
-#include "graph.hpp"
-
+#include "graph/graph.hpp"
 #include <fstream>
-#include <stdexcept>
 #include <string>
+#include <stdexcept>
 
-//formato di output:
-//n m
-//u v w
-inline void save_graph_to_file(const Graph& g, const std::string& path) {
-    //apri file di output
-    std::ofstream out(path);
+inline void save_graph_to_file(const Graph& g, const std::string& filename) {
+    std::ofstream out(filename);
     if (!out) {
-        throw std::runtime_error("Impossibile aprire il file di output: " + path);
+        throw std::runtime_error("Failed to open file for writing: " + filename);
     }
 
-    //calcola numero totale di archi m
-    //se il grafo è orientato
-    // m è la somma delle lunghezze delle liste di adiacenza
-    //ogni lista di adiacenza contiene solo gli archi uscenti da un nodo
-    long long m = 0;
-    for (const auto& adj : g) {
-        m += static_cast<long long>(adj.size());
-    }
+    // Scrive il numero di nodi totali nella prima riga
+    out << g.size() << "\n";
 
-    out << g.size() << " " << m << "\n";
-
-    for (int u = 0; u < static_cast<int>(g.size()); ++u) {
-        //per ogni nodo u, visita tutti gli archi della sua lista di adiacenza
-        for (const auto& e : g[u]) {
-            out << u << " " << e.to << " " << e.w << "\n";
+    // Scrive la lista di adiacenza nel formato: sorgente destinazione peso
+    for (size_t u = 0; u < g.size(); ++u) {
+        for (const auto& edge : g[u]) {
+            out << u << " " << edge.target << " " << edge.weight << "\n";
         }
     }
 }

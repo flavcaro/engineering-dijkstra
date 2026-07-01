@@ -80,11 +80,11 @@ inline DijkstraResult dijkstra_binary_heap_lazy(const Graph& g, int source, Dijk
 
         //rilassamento degli archi uscenti da u
         for (const auto& e : g[u]) {
-            int v = e.to;
+            int v = e.target;
             if (stats) {
                 ++stats->edge_relax_attempts;
             }
-            double nd = dist[u] + e.w;
+            double nd = dist[u] + e.weight;
 
             if (nd < dist[v]) {
                 if (stats) {

@@ -1,47 +1,76 @@
 #pragma once
 
-#include "graph.hpp"
-
+#include "graph/graph.hpp"
 #include <fstream>
-#include <stdexcept>
 #include <string>
+#include <stdexcept>
+#include <vector>
+#include <algorithm>
+#include <iostream>
 
-//carica un grafo da un file di testo. Il formato del file è:
-//n m
-//u v w
-//...
-//dove n è il numero di nodi, m è il numero di archi
-//e ogni riga successiva rappresenta un arco diretto da u a v con peso w.
-inline Graph load_graph_from_file(const std::string& path) {
-    std::ifstream in(path);
+inline Graph load_graph_from_file(const std::string& filename) {
+    std::ifstream in(filename);
     if (!in) {
-        throw std::runtime_error("Cannot open input file: " + path);
+        throw std::runtime_error("Failed to open file for reading: " + filename);
     }
 
-    int n;
-    long long m;
-    //legge n e m dalla prima riga del file: intestazione del file
-    in >> n >> m;
-
-    if (!in || n < 0 || m < 0) {
-        throw std::runtime_error("Invalid graph file header: " + path);
+    size_t declared_nodes = 0;
+    if (!(in >> declared_nodes)) {
+        throw std::runtime_error("Invalid file format in: " + filename + " (missing node count)");
     }
 
-    //crea un grafo con n nodi e nessun arco
-    Graph g = make_graph(n);
+    // Struttura temporanea per salvare gli archi prima di sapere il numero reale di nodi
+    struct TempEdge { size_t u, v; int w; };
+    std::vector<TempEdge> temp_edges;
+    
+    size_t u = 0, v = 0;
+    int w = 0;
+    size_t max_index = 0;
+    bool uses_node_zero = false;
 
-    //legge m archi dal file e aggiungili al grafo con peso w
-    for (long long i = 0; i < m; ++i) {
-        int u, v;
-        double w;
-        in >> u >> v >> w;
+    // 1. Leggiamo tutti gli archi e analizziamo gli indici usati nel file
+    while (in >> u >> v >> w) {
+        temp_edges.push_back({u, v, w});
+        if (u > max_index) max_index = u;
+        if (v > max_index) max_index = v;
+        if (u == 0 || v == 0) {
+            uses_node_zero = true;
+        }
+    }
 
-        if (!in) {
-            throw std::runtime_error("Invalid edge data in file: " + path);
+    // 2. Determiniamo se il grafo è 1-based (non usa lo zero e il max_index arriva a declared_nodes)
+    bool is_1_based = !uses_node_zero && (max_index == declared_nodes);
+
+    // 3. Calcoliamo la dimensione reale necessaria per il vettore del Grafo
+    size_t real_nodes = declared_nodes;
+    if (is_1_based) {
+        // Se è 1-based, gli indici andranno da 1 a N. Sottraendo 1, entreranno perfettamente in [0, N-1]
+        real_nodes = declared_nodes;
+    } else {
+        // Se è 0-based ma ci sono indici fuori scala, prendiamo il massimo trovato + 1
+        real_nodes = std::max(declared_nodes, max_index + 1);
+    }
+
+    Graph g(real_nodes);
+
+    // 4. Popoliamo il grafo applicando la correzione solo se necessario
+    for (const auto& edge : temp_edges) {
+        size_t final_u = edge.u;
+        size_t final_v = edge.v;
+
+        if (is_1_based) {
+            final_u--;
+            final_v--;
         }
 
-        add_directed_edge(g, u, v, w);
+        // Controllo di sicurezza finale (non dovrebbe mai fallire ora)
+        if (final_u < real_nodes && final_v < real_nodes) {
+            g[final_u].push_back(Edge{static_cast<int>(final_v), edge.w});
+        }
     }
+
+    std::cout << "  [File Loader] Loaded " << filename << ": declared=" << declared_nodes 
+              << ", allocated_nodes=" << real_nodes << " (Detected " << (is_1_based ? "1-based" : "0-based") << ")\n";
 
     return g;
 }

@@ -28,8 +28,6 @@ inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source, Dijkstra
     std::vector<double> dist(n, INF);
     std::vector<int> parent(n, -1);
 
-    // Vettore per tenere traccia dei nodi già visitati
-    std::vector<bool> visited(n, false);
 
     if (stats) {
         *stats = {};
@@ -58,25 +56,17 @@ inline DijkstraResult dijkstra_pairing_heap(const Graph& g, int source, Dijkstra
         }
         handles[u] = nullptr;
 
-        // Se il nodo è già stato visitato, salta
-        if (visited[u]) {
-            if (stats) {
-                ++stats->stale_entries_discarded;
-            }
-            continue;
-        }
-        visited[u] = true;
         if (stats) {
             ++stats->settled_nodes;
         }
 
         //Rilassamento degli archi uscenti da u
         for (const auto& e : g[u]) {
-            int v = e.to;
+            int v = e.target;
             if (stats) {
                 ++stats->edge_relax_attempts;
             }
-            double nd = du + e.w;
+            double nd = du + e.weight;
 
             // Se viene trovato un percorso più breve per v
             //aggiorna la distanza e il genitore
